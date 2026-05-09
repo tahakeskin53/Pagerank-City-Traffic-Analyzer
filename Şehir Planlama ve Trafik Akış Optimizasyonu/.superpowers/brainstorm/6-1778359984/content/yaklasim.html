@@ -1,0 +1,42 @@
+<h2>Proje Yaklaşımı — Hangisi daha uygun?</h2>
+<p class="subtitle">PageRank algoritmasını şehir/trafik bağlamında temsil etmek için 3 farklı yol. Birini seç veya terminalde söyle.</p>
+
+<div class="options">
+
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>🚦 İnteraktif Web Uygulaması</h3>
+      <p>Tarayıcıda çalışan, gerçek zamanlı PageRank animasyonu. Şehir grafını kendin çiz, algoritma adım adım kavşakların önem skorunu hesaplar. Sunum sırasında canlı demo yapabilirsin.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Artılar</h4><ul><li>Sunumda canlı demo</li><li>Görsel etki çok yüksek</li><li>Damping faktörü, iterasyon sayısı gibi parametreler değiştirilebilir</li></ul></div>
+        <div class="cons"><h4>Eksiler</h4><ul><li>Daha fazla geliştirme süresi</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>🐍 Python Simülasyonu + Görselleştirme</h3>
+      <p>NetworkX ile şehir grafı, Matplotlib/Plotly ile PageRank görselleştirmesi. Algoritmanın matematiksel arka planı kod içinde net görünür. Akademik bir proje için güçlü tercih.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Artılar</h4><ul><li>Matematiksel şeffaflık</li><li>Matris operasyonları açıkça görünür</li><li>Ekstra kurulum gerektirmez</li></ul></div>
+        <div class="cons"><h4>Eksiler</h4><ul><li>Sunum etkisi daha düşük</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>⚡ İkisi Birden — Web Arayüzü + Python Motoru</h3>
+      <p>Python backend PageRank'i hesaplar, web arayüzü sonuçları görselleştirir. En kapsamlı yaklaşım — hem algoritma matematiksel olarak sağlam, hem de sunum görsel açıdan etkileyici.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Artılar</h4><ul><li>En güçlü sunum</li><li>Hem kod hem demo</li><li>Öğreti açısından tam</li></ul></div>
+        <div class="cons"><h4>Eksiler</h4><ul><li>En fazla geliştirme süresi</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+</div>
