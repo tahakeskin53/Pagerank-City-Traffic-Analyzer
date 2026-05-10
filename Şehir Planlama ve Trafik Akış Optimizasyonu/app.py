@@ -107,7 +107,7 @@ os.makedirs("data",   exist_ok=True)
 os.makedirs("output", exist_ok=True)
 
 # ── YARDIMCI FONKSİYONLAR ────────────────────────────────────────────────────
-@st.cache_data(show_spinner=False)
+@st.cache_resource(show_spinner=False)
 def graf_yukle(mahalle_adi: str, koordinat: tuple):
     cache = f"data/{mahalle_adi.replace(' ', '')}.graphml"
     if os.path.exists(cache):
@@ -128,7 +128,13 @@ def graf_yukle(mahalle_adi: str, koordinat: tuple):
 
 @st.cache_data(show_spinner=False)
 def pagerank_hesapla(_G, mahalle_adi: str, alpha: float):
-    return nx.pagerank(_G, alpha=alpha, max_iter=100, tol=1e-6)
+    # α yükseldikçe yakınsama daha fazla iterasyon gerektirir;
+    # max_iter=1000 ve toleransı biraz gevşeterek hata önlenir.
+    try:
+        return nx.pagerank(_G, alpha=alpha, max_iter=1000, tol=1e-6)
+    except nx.PowerIterationFailedConvergence:
+        # Yine de yakınsamazsa toleransı gevşet
+        return nx.pagerank(_G, alpha=alpha, max_iter=1000, tol=1e-4)
 
 def skor_renk(norm: float) -> str:
     r = int(255 * norm)
@@ -136,11 +142,10 @@ def skor_renk(norm: float) -> str:
     return f"#{r:02x}{g:02x}00"
 
 def folium_harita_olustur(G, pr_scores: dict) -> str:
-    node_data  = dict(G.nodes(data=True))
-    scores     = list(pr_scores.values())
-    mn, mx     = min(scores), max(scores)
-    denom      = mx - mn + 1e-12
-    top10_esik = sorted(scores, reverse=True)[min(9, len(scores)-1)]
+    node_data = dict(G.nodes(data=True))
+    scores    = list(pr_scores.values())
+    mn, mx    = min(scores), max(scores)
+    denom     = mx - mn + 1e-12
 
     lat_vals = [d["y"] for d in node_data.values()]
     lon_vals = [d["x"] for d in node_data.values()]
@@ -288,11 +293,10 @@ def folium_harita_olustur(G, pr_scores: dict) -> str:
     # ── Leaflet map değişken adı (flyTo için gerekli) ──
     map_var = harita.get_name()
 
-    # ── Top 10 panel satırları + koordinat dizisi ──
+    # ── Top 10 panel satırları ──
     top10_rows_html = ""
-    coords_js_parts = []
 
-    for i, (node, rank) in enumerate(top10_nodes.items()):
+    for node, rank in top10_nodes.items():
         score  = pr_scores[node]
         lat    = node_data[node]["y"]
         lon    = node_data[node]["x"]
@@ -301,32 +305,31 @@ def folium_harita_olustur(G, pr_scores: dict) -> str:
         r_c    = int(255 * norm); g_c = int(255 * (1 - norm))
         bar_cl = f"#{r_c:02x}{g_c:02x}00"
         medal  = ["🥇","🥈","🥉"][rank-1] if rank <= 3 else f"#{rank}"
-        coords_js_parts.append(f"[{lat},{lon}]")
 
         top10_rows_html += f"""
         <div onclick="flyToKavsak({lat},{lon},{rank})"
              onmouseover="this.style.background='rgba(255,255,255,0.07)'"
              onmouseout="this.style.background='transparent'"
-             style="display:flex;align-items:center;gap:10px;
-                    padding:8px 10px;border-radius:8px;margin-bottom:5px;
+             style="display:flex;align-items:center;gap:12px;
+                    padding:10px 12px;border-radius:8px;margin-bottom:6px;
                     cursor:pointer;transition:background 0.18s;
-                    border:1px solid rgba(255,255,255,0.06);">
-          <div style="font-size:1.1rem;width:26px;text-align:center;flex-shrink:0;">{medal}</div>
+                    border:1px solid rgba(255,255,255,0.08);">
+          <div style="font-size:1.3rem;width:30px;text-align:center;flex-shrink:0;">{medal}</div>
           <div style="flex:1;min-width:0;">
-            <div style="font-size:0.68rem;color:#777;margin-bottom:4px;
-                        white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            <div style="font-size:0.82rem;color:#bbb;margin-bottom:6px;
+                        white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+                        letter-spacing:0.3px;">
               {lat:.4f}, {lon:.4f}
             </div>
-            <div style="background:rgba(255,255,255,0.1);border-radius:3px;height:5px;">
-              <div style="width:{bar_w}%;height:5px;border-radius:3px;background:{bar_cl};"></div>
+            <div style="background:rgba(255,255,255,0.12);border-radius:4px;height:7px;">
+              <div style="width:{bar_w}%;height:7px;border-radius:4px;background:{bar_cl};"></div>
             </div>
           </div>
-          <div style="font-size:0.7rem;color:#aaa;white-space:nowrap;flex-shrink:0;">
+          <div style="font-size:0.82rem;color:#e0e0e0;font-weight:600;
+                      white-space:nowrap;flex-shrink:0;letter-spacing:0.3px;">
             {score:.6f}
           </div>
         </div>"""
-
-    coords_js = "[" + ",".join(coords_js_parts) + "]"
 
     # ── Efsane ──
     legend_html = """
@@ -344,17 +347,17 @@ def folium_harita_olustur(G, pr_scores: dict) -> str:
     # ── Top 10 panel + flyTo script (aynı iframe içinde) ──
     panel_and_script = f"""
     <div id="top10-panel" style="
-        position:absolute;top:10px;right:10px;width:255px;
-        background:rgba(13,17,23,0.93);border-radius:12px;
-        border:1px solid rgba(255,255,255,0.12);
+        position:absolute;top:10px;right:10px;width:300px;
+        background:rgba(13,17,23,0.95);border-radius:14px;
+        border:1px solid rgba(255,255,255,0.14);
         font-family:Inter,sans-serif;color:#e6edf3;
-        z-index:1000;padding:14px;
+        z-index:1000;padding:16px;
         max-height:88%;overflow-y:auto;
-        box-shadow:0 6px 28px rgba(0,0,0,0.55);">
-      <div style="font-size:13px;font-weight:700;margin-bottom:10px;
-                  border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:8px;">
+        box-shadow:0 8px 32px rgba(0,0,0,0.6);">
+      <div style="font-size:15px;font-weight:700;margin-bottom:12px;
+                  border-bottom:1px solid rgba(255,255,255,0.12);padding-bottom:10px;">
         🏆 Top 10 Kritik Kavşak
-        <div style="font-size:10px;font-weight:400;color:#666;margin-top:3px;">
+        <div style="font-size:11px;font-weight:400;color:#888;margin-top:4px;">
           Tıkla → haritada göster
         </div>
       </div>
@@ -362,8 +365,6 @@ def folium_harita_olustur(G, pr_scores: dict) -> str:
     </div>
 
     <script>
-    var _top10coords = {coords_js};
-
     function flyToKavsak(lat, lon, rank) {{
         var map = window['{map_var}'];
         if (!map) return;
@@ -419,7 +420,8 @@ with st.sidebar:
 
     st.markdown(
         f"<div class='info-box'>α = <b>{alpha}</b><br>"
-        f"Sürücünün mevcut kavşaktan rastgele yola geçme olasılığı: <b>%{int(alpha*100)}</b></div>",
+        f"Sürücünün komşu kavşağa geçme (yolu takip etme) olasılığı: <b>%{int(alpha*100)}</b><br>"
+        f"Rastgele ışınlanma olasılığı: <b>%{round((1-alpha)*100, 1)}</b></div>",
         unsafe_allow_html=True,
     )
 
@@ -459,9 +461,8 @@ with st.spinner(f"🌐 {secilen_adi} yol ağı yükleniyor..."):
 with st.spinner("⚙️ PageRank hesaplanıyor..."):
     pr = pagerank_hesapla(G, secilen_adi, alpha)
 
-scores     = list(pr.values())
-node_data  = dict(G.nodes(data=True))
-top10_list = sorted(pr.items(), key=lambda x: x[1], reverse=True)[:10]
+scores    = list(pr.values())
+node_data = dict(G.nodes(data=True))
 
 # ── METRİKLER ────────────────────────────────────────────────────────────────
 st.markdown("<br>", unsafe_allow_html=True)
@@ -526,7 +527,8 @@ yüksek skor alır.
 
 $$PR(u) = \\frac{{1-\\alpha}}{{N}} + \\alpha \\sum_{{v \\in B_u}} \\frac{{PR(v)}}{{L(v)}}$$
 
-- $\\alpha = {alpha}$ → Damping factor (Google orijinal: 0.85)
+- $\\alpha = {alpha}$ → Damping factor: sürücünün mevcut kavşaktan gerçek bir yolu takip etme olasılığı (Google orijinal: 0.85)
+- $1-\\alpha = {round(1-alpha, 2)}$ → Rastgele ışınlanma: sürücünün ağdaki herhangi bir kavşağa atlaması
 - $N = {len(G.nodes)}$ → Toplam düğüm (kavşak) sayısı
 - $B_u$ → $u$ kavşağına giren yolların kümesi
 - $L(v)$ → $v$ kavşağından çıkan yol sayısı
