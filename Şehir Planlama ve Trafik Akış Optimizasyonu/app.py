@@ -518,16 +518,62 @@ st.markdown("<br>", unsafe_allow_html=True)
 
 # ── HARİTA (Top 10 panel içinde gömülü) ──────────────────────────────────────
 dilim_etiket = {"sabah_rush": "🌅 Sabah Rush", "aksam_rush": "🌆 Akşam Rush", "sakin": "🌙 Sakin Saat"}
-st.markdown(f"### 🗺️ {secilen_adi} — {dilim_etiket[secilen_dilim]}")
-st.markdown(
-    "<div style='font-size:0.85rem;opacity:0.6;margin-bottom:0.8rem;'>"
-    "Kırmızı/büyük noktalar = kritik kavşaklar · "
-    "Sağdaki listeden tıkla → haritada uç · Noktalara tıkla → skor bilgisi</div>",
-    unsafe_allow_html=True,
-)
-with st.spinner("🗺️ Harita oluşturuluyor..."):
-    harita_html = folium_harita_olustur(G, pr)
-st.components.v1.html(harita_html, height=600, scrolling=False)
+
+tab_harita, tab_karsilastirma = st.tabs(["🗺️ Harita", "📊 Dilim Karşılaştırması"])
+
+with tab_harita:
+    st.markdown(f"### 🗺️ {secilen_adi} — {dilim_etiket[secilen_dilim]}")
+    st.markdown(
+        "<div style='font-size:0.85rem;opacity:0.6;margin-bottom:0.8rem;'>"
+        "Kırmızı/büyük noktalar = kritik kavşaklar · "
+        "Sağdaki listeden tıkla → haritada uç · Noktalara tıkla → skor bilgisi</div>",
+        unsafe_allow_html=True,
+    )
+    with st.spinner("🗺️ Harita oluşturuluyor..."):
+        harita_html = folium_harita_olustur(G, pr)
+    st.components.v1.html(harita_html, height=600, scrolling=False)
+
+with tab_karsilastirma:
+    st.markdown("### 📊 Zaman Dilimi Karşılaştırması")
+    st.markdown(
+        "<div style='font-size:0.85rem;opacity:0.6;margin-bottom:1rem;'>"
+        "Top-10 kritik kavşakların 3 zaman dilimindeki sıralama değişimi. "
+        "'&gt;10' = o dilimde ilk 10 dışında.</div>",
+        unsafe_allow_html=True,
+    )
+
+    gcols = st.columns(3)
+    for col, dilim in zip(gcols, ["sabah_rush", "aksam_rush", "sakin"]):
+        g = gini_coefficient(pr_sonuclar[dilim])
+        etiket = dilim_etiket[dilim]
+        with col:
+            st.markdown(f"""
+            <div class="metric-card">
+              <div class="label">{etiket}</div>
+              <div class="value">{g:.3f}</div>
+              <div class="sub">Gini katsayısı</div>
+            </div>""", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    rank_df = compute_rank_table(pr_sonuclar)
+    rank_df = rank_df.rename(columns={
+        "node": "Kavşak ID",
+        "sabah_rush": "🌅 Sabah",
+        "aksam_rush": "🌆 Akşam",
+        "sakin": "🌙 Sakin",
+    })
+    st.dataframe(
+        rank_df,
+        use_container_width=True,
+        hide_index=True,
+    )
+
+    st.markdown(
+        "<div style='font-size:0.78rem;opacity:0.5;margin-top:0.5rem;'>"
+        "Çarpan kaynağı: TRB Highway Capacity Manual (HCM 7th ed.)</div>",
+        unsafe_allow_html=True,
+    )
 
 # ── ALGORİTMA AÇIKLAMASI ─────────────────────────────────────────────────────
 st.markdown("<br>", unsafe_allow_html=True)
