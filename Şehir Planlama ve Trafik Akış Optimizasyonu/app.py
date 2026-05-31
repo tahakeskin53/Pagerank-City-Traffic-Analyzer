@@ -6,6 +6,7 @@ import numpy as np
 import os
 import warnings
 warnings.filterwarnings("ignore")
+from trafik_analiz import compute_all_slots, gini_coefficient, compute_rank_table
 
 # ── SAYFA YAPLANDIRMASI ──────────────────────────────────────────────────────
 st.set_page_config(
@@ -127,14 +128,8 @@ def graf_yukle(mahalle_adi: str, koordinat: tuple):
     return G
 
 @st.cache_data(show_spinner=False)
-def pagerank_hesapla(_G, mahalle_adi: str, alpha: float):
-    # α yükseldikçe yakınsama daha fazla iterasyon gerektirir;
-    # max_iter=1000 ve toleransı biraz gevşeterek hata önlenir.
-    try:
-        return nx.pagerank(_G, alpha=alpha, max_iter=1000, tol=1e-6)
-    except nx.PowerIterationFailedConvergence:
-        # Yine de yakınsamazsa toleransı gevşet
-        return nx.pagerank(_G, alpha=alpha, max_iter=1000, tol=1e-4)
+def tum_slotlar_hesapla(_G, mahalle_adi: str, alpha: float):
+    return compute_all_slots(_G, alpha=alpha)
 
 def skor_renk(norm: float) -> str:
     r = int(255 * norm)
@@ -458,8 +453,10 @@ secilen_koordinat = MAHALLELER[secilen_adi]
 with st.spinner(f"🌐 {secilen_adi} yol ağı yükleniyor..."):
     G = graf_yukle(secilen_adi, secilen_koordinat)
 
-with st.spinner("⚙️ PageRank hesaplanıyor..."):
-    pr = pagerank_hesapla(G, secilen_adi, alpha)
+with st.spinner("⚙️ 3 zaman dilimi için PageRank hesaplanıyor..."):
+    pr_sonuclar = tum_slotlar_hesapla(G, secilen_adi, alpha)
+secilen_dilim = "sabah_rush"  # Task 7'de sidebar'a taşınacak
+pr = pr_sonuclar[secilen_dilim]
 
 scores    = list(pr.values())
 node_data = dict(G.nodes(data=True))
