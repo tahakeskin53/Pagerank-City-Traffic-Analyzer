@@ -421,7 +421,24 @@ with st.sidebar:
     )
 
     st.markdown("---")
+    secilen_dilim = st.radio(
+        "Zaman Dilimi",
+        options=["sabah_rush", "aksam_rush", "sakin"],
+        format_func=lambda x: {
+            "sabah_rush": "🌅 Sabah Rush (07-09)",
+            "aksam_rush": "🌆 Akşam Rush (17-19)",
+            "sakin":      "🌙 Sakin Saat",
+        }[x],
+    )
+    st.markdown(
+        "<div style='font-size:0.78rem;opacity:0.5;margin-top:0.3rem;'>"
+        "Çarpanlar: TRB Highway Capacity Manual</div>",
+        unsafe_allow_html=True,
+    )
+    st.markdown("---")
     analiz_btn = st.button("🔍  Analiz Et", use_container_width=True)
+    if analiz_btn:
+        st.session_state["analiz_yapildi"] = True
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown(
@@ -438,7 +455,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-if not analiz_btn:
+if not st.session_state.get("analiz_yapildi", False):
     st.markdown("""
     <div style="text-align:center;padding:4rem 2rem;color:rgba(255,255,255,0.3);">
       <div style="font-size:5rem;">🏙️</div>
@@ -455,11 +472,11 @@ with st.spinner(f"🌐 {secilen_adi} yol ağı yükleniyor..."):
 
 with st.spinner("⚙️ 3 zaman dilimi için PageRank hesaplanıyor..."):
     pr_sonuclar = tum_slotlar_hesapla(G, secilen_adi, alpha)
-secilen_dilim = "sabah_rush"  # Task 7'de sidebar'a taşınacak
 pr = pr_sonuclar[secilen_dilim]
 
 scores    = list(pr.values())
 node_data = dict(G.nodes(data=True))
+gini = gini_coefficient(pr)
 
 # ── METRİKLER ────────────────────────────────────────────────────────────────
 st.markdown("<br>", unsafe_allow_html=True)
@@ -492,15 +509,16 @@ with c3:
 with c4:
     st.markdown(f"""
     <div class="metric-card">
-      <div class="label">Damping Factor</div>
-      <div class="value">α = {alpha}</div>
-      <div class="sub">iterasyon parametresi</div>
+      <div class="label">Gini Katsayısı</div>
+      <div class="value">{gini:.3f}</div>
+      <div class="sub">trafik yoğunlaşması</div>
     </div>""", unsafe_allow_html=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ── HARİTA (Top 10 panel içinde gömülü) ──────────────────────────────────────
-st.markdown(f"### 🗺️ {secilen_adi} — PageRank Haritası")
+dilim_etiket = {"sabah_rush": "🌅 Sabah Rush", "aksam_rush": "🌆 Akşam Rush", "sakin": "🌙 Sakin Saat"}
+st.markdown(f"### 🗺️ {secilen_adi} — {dilim_etiket[secilen_dilim]}")
 st.markdown(
     "<div style='font-size:0.85rem;opacity:0.6;margin-bottom:0.8rem;'>"
     "Kırmızı/büyük noktalar = kritik kavşaklar · "
