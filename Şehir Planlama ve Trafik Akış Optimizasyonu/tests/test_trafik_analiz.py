@@ -53,6 +53,13 @@ def test_impute_lanes_converts_string_to_int():
     assert G[1][2][0]["lanes"] == 3
 
 
+def test_impute_lanes_handles_list_lanes():
+    G = make_test_graph()
+    G[1][2][0]["lanes"] = ["2", "3"]
+    G = impute_lanes(G)
+    assert G[1][2][0]["lanes"] == 2  # takes first element
+
+
 # ── Base weights ──────────────────────────────────────────────────────────────
 
 def test_compute_base_weights_covers_all_edges():

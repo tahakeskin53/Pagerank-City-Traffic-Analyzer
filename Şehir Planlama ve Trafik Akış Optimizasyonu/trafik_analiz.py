@@ -45,6 +45,8 @@ def impute_lanes(G):
             G[u][v][k]["lanes"] = LANE_DEFAULTS.get(highway, 1)
         else:
             try:
+                if isinstance(raw, list):
+                    raw = raw[0]
                 G[u][v][k]["lanes"] = int(raw)
             except (ValueError, TypeError):
                 highway = data.get("highway", "unclassified")
