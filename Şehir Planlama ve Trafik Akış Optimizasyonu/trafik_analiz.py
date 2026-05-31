@@ -63,7 +63,23 @@ def _normalize(values):
 
 
 def compute_base_weights(G):
-    raise NotImplementedError
+    edges = list(G.edges(keys=True, data=True))
+    speeds  = [float(d.get("speed_kph", 30.0)) for _, _, _, d in edges]
+    lanes   = [float(d.get("lanes", 1))         for _, _, _, d in edges]
+    lengths = [float(d.get("length", 100.0))    for _, _, _, d in edges]
+
+    norm_speed      = _normalize(speeds)
+    norm_lanes      = _normalize(lanes)
+    norm_inv_length = _normalize([1.0 / l for l in lengths])
+
+    weights = {}
+    for i, (u, v, k, _) in enumerate(edges):
+        weights[(u, v, k)] = (
+            0.4 * norm_speed[i] +
+            0.4 * norm_lanes[i] +
+            0.2 * norm_inv_length[i]
+        )
+    return weights
 
 
 def apply_temporal_weights(base_weights, edge_highway_map, dilim):
