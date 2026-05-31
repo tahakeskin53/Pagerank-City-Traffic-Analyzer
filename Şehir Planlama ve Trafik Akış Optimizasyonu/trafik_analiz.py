@@ -119,8 +119,9 @@ def compute_all_slots(G, alpha=0.85):
         in_w = {}
         for (u, v, k), w in temporal.items():
             in_w[v] = in_w.get(v, 0) + w
-        total = sum(in_w.values())
-        personalization = {n: in_w.get(n, 1e-6) / total for n in G.nodes()}
+        raw = {n: in_w.get(n, 1e-6) for n in G.nodes()}
+        total = sum(raw.values())
+        personalization = {n: v / total for n, v in raw.items()}
 
         try:
             scores = nx.pagerank(

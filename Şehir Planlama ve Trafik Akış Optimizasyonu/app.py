@@ -1,6 +1,5 @@
 import streamlit as st
 import osmnx as ox
-import networkx as nx
 import folium
 import numpy as np
 import os
