@@ -83,7 +83,15 @@ def compute_base_weights(G):
 
 
 def apply_temporal_weights(base_weights, edge_highway_map, dilim):
-    raise NotImplementedError
+    multipliers = TEMPORAL_MULTIPLIERS.get(dilim, {})
+    result = {}
+    for (u, v, k), w in base_weights.items():
+        highway = edge_highway_map.get((u, v, k), "unclassified")
+        if isinstance(highway, list):
+            highway = highway[0]
+        mult = multipliers.get(highway, 1.0)
+        result[(u, v, k)] = w * mult
+    return result
 
 
 def compute_all_slots(G, alpha=0.85):
