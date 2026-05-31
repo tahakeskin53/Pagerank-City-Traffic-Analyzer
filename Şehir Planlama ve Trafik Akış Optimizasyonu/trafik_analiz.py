@@ -137,8 +137,35 @@ def compute_all_slots(G, alpha=0.85):
 
 
 def gini_coefficient(scores):
-    raise NotImplementedError
+    arr = np.sort(np.array(list(scores.values()), dtype=float))
+    n   = len(arr)
+    idx = np.arange(1, n + 1)
+    return float(
+        (2 * np.sum(idx * arr) - (n + 1) * np.sum(arr))
+        / (n * np.sum(arr) + 1e-12)
+    )
 
 
 def compute_rank_table(pr_results):
-    raise NotImplementedError
+    slot_ranks = {}
+    for dilim, scores in pr_results.items():
+        top10 = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:10]
+        slot_ranks[dilim] = {node: rank + 1 for rank, (node, _) in enumerate(top10)}
+
+    all_nodes = set()
+    for ranks in slot_ranks.values():
+        all_nodes.update(ranks.keys())
+
+    rows = []
+    for node in all_nodes:
+        row = {"node": node}
+        for dilim in ["sabah_rush", "aksam_rush", "sakin"]:
+            row[dilim] = slot_ranks[dilim].get(node, ">10")
+        rows.append(row)
+
+    df = pd.DataFrame(rows)
+    df = df.sort_values(
+        "sabah_rush",
+        key=lambda col: col.map(lambda v: v if isinstance(v, int) else 99),
+    )
+    return df.reset_index(drop=True)
