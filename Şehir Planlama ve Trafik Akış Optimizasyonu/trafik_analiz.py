@@ -1,6 +1,7 @@
 import numpy as np
 import networkx as nx
 import pandas as pd
+import osmnx as ox
 
 LANE_DEFAULTS = {
     "motorway": 3, "motorway_link": 2,
@@ -95,7 +96,44 @@ def apply_temporal_weights(base_weights, edge_highway_map, dilim):
 
 
 def compute_all_slots(G, alpha=0.85):
-    raise NotImplementedError
+    edges_data = [d for _, _, d in G.edges(data=True)]
+    if not any("speed_kph" in d for d in edges_data):
+        G = ox.add_edge_speeds(G)
+
+    G = impute_lanes(G)
+    base_weights = compute_base_weights(G)
+
+    edge_highway_map = {
+        (u, v, k): d.get("highway", "unclassified")
+        for u, v, k, d in G.edges(keys=True, data=True)
+    }
+
+    results = {}
+    for dilim in ["sabah_rush", "aksam_rush", "sakin"]:
+        temporal = apply_temporal_weights(base_weights, edge_highway_map, dilim)
+        for (u, v, k), w in temporal.items():
+            G[u][v][k]["trafik_agirlik"] = w
+
+        # Build personalization from in-edge weights so that nodes receiving
+        # heavier traffic are seeded as more important in the PageRank.
+        in_w = {}
+        for (u, v, k), w in temporal.items():
+            in_w[v] = in_w.get(v, 0) + w
+        total = sum(in_w.values())
+        personalization = {n: in_w.get(n, 1e-6) / total for n in G.nodes()}
+
+        try:
+            scores = nx.pagerank(
+                G, alpha=alpha, weight="trafik_agirlik",
+                personalization=personalization, max_iter=1000, tol=1e-6
+            )
+        except nx.PowerIterationFailedConvergence:
+            scores = nx.pagerank(
+                G, alpha=alpha, weight="trafik_agirlik",
+                personalization=personalization, max_iter=1000, tol=1e-4
+            )
+        results[dilim] = scores
+    return results
 
 
 def gini_coefficient(scores):
